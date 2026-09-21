@@ -73,14 +73,15 @@ async def cmd_unlock(
 
     try:
         chat = await bot.get_chat(chat_id)
-        member = await bot.get_chat_member(chat_id, message.from_user.id)
+        # Баеру состоять в группе не нужно, ТимЛиду — обязательно
+        member = None if topic_id else await bot.get_chat_member(chat_id, message.from_user.id)
     except TelegramAPIError as e:
         log.info("unlock: chat %s unavailable: %s", chat_id, e)
         await message.answer(
             "Не удалось найти группу. Проверьте ID и убедитесь, что бот добавлен в группу"
         )
         return
-    if member.status in _NOT_MEMBER:
+    if member and member.status in _NOT_MEMBER:
         await message.answer("Вы не состоите в этой группе")
         return
 
