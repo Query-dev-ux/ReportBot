@@ -30,9 +30,9 @@ router.message.filter(F.chat.type == ChatType.PRIVATE, RoleFilter(Role.BUYER))
 router.callback_query.filter(RoleFilter(Role.BUYER))
 
 TEMPLATE = (
-    "Напишите отчет одним сообщением:\n\n"
+    "Напиши отчет одним сообщением:\n\n"
     "1. Дата отчета (например, отчёт за 14.03.26)\n"
-    "2. Какие задачи у вас на сегодняшний день?\n"
+    "2. Какие задачи у тебя на сегодняшний день?\n"
     "3. Какие есть сейчас проблемы? Какие есть вопросы?"
 )
 
@@ -75,7 +75,7 @@ async def show_last_report(
     await state.clear()
     report = await repo.last_report(session, user.tg_id)
     if report is None:
-        await message.answer("У вас пока нет отчетов")
+        await message.answer("У тебя пока нет отчетов")
         return
     await send_long(
         bot, message.chat.id, report_card(report, config.tz), reply_markup=edit_report_kb(report.id)
@@ -94,7 +94,7 @@ async def save_new_report(
     report_date = parse_report_date(message.text, datetime.now(config.tz).date())
     if report_date is None:
         await message.answer(
-            "Не нашел дату отчета. Укажите ее в первой строке, например: «Отчёт за 14.03.26»"
+            "Не нашел дату отчета. Укажи ее в первой строке, например: «Отчёт за 14.03.26»"
         )
         return
 
@@ -126,7 +126,7 @@ async def edit_report_start(
     await state.set_state(ReportForm.edit)
     await state.update_data(report_id=report.id)
     await call.message.answer(
-        f"Отправьте обновленный отчет за {fmt_date(report.report_date)} одним сообщением"
+        f"Отправь обновленный отчет за {fmt_date(report.report_date)} одним сообщением"
     )
     await call.answer()
 
@@ -155,4 +155,4 @@ async def save_edited_report(
 @router.message(ReportForm.new)
 @router.message(ReportForm.edit)
 async def not_text(message: Message) -> None:
-    await message.answer("Отправьте отчет текстовым сообщением")
+    await message.answer("Отправь отчет текстовым сообщением")

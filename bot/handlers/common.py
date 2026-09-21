@@ -38,7 +38,7 @@ async def cmd_start(message: Message, state: FSMContext, user: User | None) -> N
         await message.answer(UNLOCK_HELP)
         return
     await message.answer(
-        f"Вы авторизованы как {ROLE_TITLES[user.role]}", reply_markup=main_menu(user.role)
+        f"Ты авторизован(а) как {ROLE_TITLES[user.role]}", reply_markup=main_menu(user.role)
     )
 
 
@@ -60,7 +60,7 @@ async def cmd_unlock(
     if hmac.compare_digest(arg.encode(), config.admin_key.get_secret_value().encode()):
         await repo.upsert_user(session, message.from_user, Role.ADMIN)
         await session.commit()
-        await message.answer("✅ Вы авторизованы как админ", reply_markup=main_menu(Role.ADMIN))
+        await message.answer("✅ Ты авторизован(а) как админ", reply_markup=main_menu(Role.ADMIN))
         return
 
     match = _UNLOCK_ARG.fullmatch(arg)
@@ -78,11 +78,11 @@ async def cmd_unlock(
     except TelegramAPIError as e:
         log.info("unlock: chat %s unavailable: %s", chat_id, e)
         await message.answer(
-            "Не удалось найти группу. Проверьте ID и убедитесь, что бот добавлен в группу"
+            "Не удалось найти группу. Проверь ID и убедись, что бот добавлен в группу"
         )
         return
     if member and member.status in _NOT_MEMBER:
-        await message.answer("Вы не состоите в этой группе")
+        await message.answer("Ты не состоишь в этой группе")
         return
 
     title = chat.title or str(chat.id)
@@ -92,13 +92,13 @@ async def cmd_unlock(
         await repo.upsert_user(session, message.from_user, Role.TEAMLEAD, group_id=chat.id)
         await session.commit()
         await message.answer(
-            f"✅ Вы авторизованы как ТимЛид группы «{escape_text(title)}»",
+            f"✅ Ты авторизован(а) как ТимЛид группы «{escape_text(title)}»",
             reply_markup=main_menu(Role.TEAMLEAD),
         )
         return
 
     if topic_id == config.general_topic_id:
-        await message.answer("Тема General не может быть темой баера. Укажите ID своей темы")
+        await message.answer("Тема General не может быть темой баера. Укажи ID своей темы")
         return
 
     # Проверяем, что бот может писать в тему, и заодно узнаем ее название
@@ -111,7 +111,7 @@ async def cmd_unlock(
     except TelegramAPIError as e:
         log.info("unlock: topic %s/%s unavailable: %s", chat.id, topic_id, e)
         await message.answer(
-            "Не удалось отправить сообщение в тему. Проверьте ID темы и права бота в группе"
+            "Не удалось отправить сообщение в тему. Проверь ID темы и права бота в группе"
         )
         return
     root = sent.reply_to_message
@@ -124,7 +124,7 @@ async def cmd_unlock(
     name = await repo.buyer_name(session, user)
     await session.commit()
     await message.answer(
-        f"✅ Вы авторизованы как баер «{escape_text(name)}» в группе «{escape_text(title)}»",
+        f"✅ Ты авторизован(а) как баер «{escape_text(name)}» в группе «{escape_text(title)}»",
         reply_markup=main_menu(Role.BUYER),
     )
 
@@ -134,4 +134,4 @@ async def fallback(message: Message, user: User | None) -> None:
     if user is None:
         await message.answer(UNLOCK_HELP)
     else:
-        await message.answer("Выберите действие в меню", reply_markup=main_menu(user.role))
+        await message.answer("Выбери действие в меню", reply_markup=main_menu(user.role))

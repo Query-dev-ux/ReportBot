@@ -26,20 +26,20 @@ async def view_reports(message: Message, state: FSMContext, session: AsyncSessio
         if not groups:
             await message.answer("Пока нет ни одной группы")
             return
-        await message.answer("Выберите группу", reply_markup=groups_kb(groups))
+        await message.answer("Выбери группу", reply_markup=groups_kb(groups))
         return
 
     buyers = await repo.list_buyers(session, user.group_id)
     if not buyers:
-        await message.answer("В вашей группе пока нет баеров")
+        await message.answer("В твоей группе пока нет баеров")
         return
-    await message.answer("Выберите баера", reply_markup=buyers_kb(buyers, with_back=False))
+    await message.answer("Выбери баера", reply_markup=buyers_kb(buyers, with_back=False))
 
 
 @router.callback_query(GroupCb.filter(), RoleFilter(Role.ADMIN))
 async def choose_group(call: CallbackQuery, callback_data: GroupCb, session: AsyncSession) -> None:
     buyers = await repo.list_buyers(session, callback_data.chat_id)
-    text = "Выберите баера" if buyers else "В этой группе пока нет баеров"
+    text = "Выбери баера" if buyers else "В этой группе пока нет баеров"
     await call.message.edit_text(text, reply_markup=buyers_kb(buyers, with_back=True))
     await call.answer()
 
@@ -47,7 +47,7 @@ async def choose_group(call: CallbackQuery, callback_data: GroupCb, session: Asy
 @router.callback_query(BackToGroupsCb.filter(), RoleFilter(Role.ADMIN))
 async def back_to_groups(call: CallbackQuery, session: AsyncSession) -> None:
     groups = await repo.list_groups(session)
-    await call.message.edit_text("Выберите группу", reply_markup=groups_kb(groups))
+    await call.message.edit_text("Выбери группу", reply_markup=groups_kb(groups))
     await call.answer()
 
 
