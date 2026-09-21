@@ -9,7 +9,7 @@ cp .env.example .env   # заполнить BOT_TOKEN и ADMIN_KEY
 docker compose up -d --build
 ```
 
-Таблицы создаются автоматически при старте.
+Таблицы создаются автоматически при старте. Деплой на VPS — в [DEPLOY.md](DEPLOY.md).
 
 ## Настройка группы
 

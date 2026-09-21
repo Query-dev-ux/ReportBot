@@ -1,7 +1,15 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Экономные настройки для VPS с 1–2 ГБ RAM
+    command: postgres -c shared_buffers=64MB -c max_connections=20
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,6 +21,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    logging: *logging
 
   bot:
     build: .
@@ -24,6 +33,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    logging: *logging
 
 volumes:
   pgdata:
