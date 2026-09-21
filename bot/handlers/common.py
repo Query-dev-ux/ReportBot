@@ -24,14 +24,7 @@ router.message.filter(F.chat.type == ChatType.PRIVATE)
 fallback_router = Router()
 fallback_router.message.filter(F.chat.type == ChatType.PRIVATE)
 
-UNLOCK_HELP = (
-    "Для доступа к боту отправьте команду:\n\n"
-    "• Баер: <code>/unlock ID_группы/ID_темы</code>\n"
-    "  например <code>/unlock 3944138604/4</code>\n"
-    "• ТимЛид: <code>/unlock ID_группы</code>\n"
-    "  например <code>/unlock 3944138604</code>\n"
-    "• Админ: <code>/unlock ключ</code>"
-)
+UNLOCK_HELP = "🔒 Доступ к боту закрыт\n\nОткрыть: /unlock КЛЮЧ"
 
 ROLE_TITLES = {Role.BUYER: "баер", Role.TEAMLEAD: "ТимЛид", Role.ADMIN: "админ"}
 _UNLOCK_ARG = re.compile(r"(-?\d+)(?:/(\d+))?")
@@ -42,7 +35,7 @@ _NOT_MEMBER = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
 async def cmd_start(message: Message, state: FSMContext, user: User | None) -> None:
     await state.clear()
     if user is None:
-        await message.answer(f"Привет! Это бот для отчетов баеров.\n\n{UNLOCK_HELP}")
+        await message.answer(UNLOCK_HELP)
         return
     await message.answer(
         f"Вы авторизованы как {ROLE_TITLES[user.role]}.", reply_markup=main_menu(user.role)
@@ -72,7 +65,7 @@ async def cmd_unlock(
 
     match = _UNLOCK_ARG.fullmatch(arg)
     if not match:
-        await message.answer(f"Неверный формат команды.\n\n{UNLOCK_HELP}")
+        await message.answer("❌ Неверный ключ.")
         return
 
     chat_id = normalize_chat_id(match[1])
