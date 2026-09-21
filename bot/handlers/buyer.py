@@ -76,7 +76,7 @@ async def show_last_report(
     await state.clear()
     report = await repo.last_report(session, user.tg_id)
     if report is None:
-        await message.answer("У вас пока нет отчетов.")
+        await message.answer("У вас пока нет отчетов")
         return
     await send_long(
         bot, message.chat.id, report_card(report, config.tz), reply_markup=edit_report_kb(report.id)
@@ -95,7 +95,7 @@ async def save_new_report(
     report_date = parse_report_date(message.text, datetime.now(config.tz).date())
     if report_date is None:
         await message.answer(
-            "Не нашел дату отчета. Укажите ее в первой строке, например: «Отчёт за 14.03.26»."
+            "Не нашел дату отчета. Укажите ее в первой строке, например: «Отчёт за 14.03.26»"
         )
         return
 
@@ -108,7 +108,7 @@ async def save_new_report(
 
     status = "сохранен и отправлен в группу" if message_id else "сохранен, но не отправлен в группу"
     await message.answer(
-        f"✅ Отчет за {fmt_date(report_date)} {status}.", reply_markup=main_menu(Role.BUYER)
+        f"✅ Отчет за {fmt_date(report_date)} {status}", reply_markup=main_menu(Role.BUYER)
     )
 
 
@@ -122,12 +122,12 @@ async def edit_report_start(
 ) -> None:
     report = await repo.get_report(session, callback_data.report_id)
     if report is None or report.user_id != user.tg_id:
-        await call.answer("Отчет не найден.", show_alert=True)
+        await call.answer("Отчет не найден", show_alert=True)
         return
     await state.set_state(ReportForm.edit)
     await state.update_data(report_id=report.id)
     await call.message.answer(
-        f"Отправьте обновленный отчет за {fmt_date(report.report_date)} одним сообщением."
+        f"Отправьте обновленный отчет за {fmt_date(report.report_date)} одним сообщением"
     )
     await call.answer()
 
@@ -140,7 +140,7 @@ async def save_edited_report(
     report = await repo.get_report(session, data.get("report_id", 0))
     await state.clear()
     if report is None or report.user_id != user.tg_id:
-        await message.answer("Отчет не найден.", reply_markup=main_menu(Role.BUYER))
+        await message.answer("Отчет не найден", reply_markup=main_menu(Role.BUYER))
         return
 
     repo.mark_updated(report, message.text)
@@ -149,11 +149,11 @@ async def save_edited_report(
 
     status = "обновлен и отправлен в группу" if message_id else "обновлен, но не отправлен в группу"
     await message.answer(
-        f"✅ Отчет за {fmt_date(report.report_date)} {status}.", reply_markup=main_menu(Role.BUYER)
+        f"✅ Отчет за {fmt_date(report.report_date)} {status}", reply_markup=main_menu(Role.BUYER)
     )
 
 
 @router.message(ReportForm.new)
 @router.message(ReportForm.edit)
 async def not_text(message: Message) -> None:
-    await message.answer("Отправьте отчет текстовым сообщением.")
+    await message.answer("Отправьте отчет текстовым сообщением")

@@ -30,7 +30,7 @@ async def remind_missing_reports(bot: Bot, sessionmaker: async_sessionmaker, con
             await bot.send_message(
                 buyer.tg_id,
                 f"⏰ Вы не заполнили отчет за {fmt_date(yesterday)}. "
-                "Пожалуйста, создайте его через кнопку «Создать новый отчет».",
+                "Пожалуйста, создайте его через кнопку «Создать новый отчет»",
                 reply_markup=main_menu(Role.BUYER),
             )
         except TelegramAPIError as e:
