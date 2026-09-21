@@ -30,9 +30,9 @@ router.message.filter(F.chat.type == ChatType.PRIVATE, RoleFilter(Role.BUYER))
 router.callback_query.filter(RoleFilter(Role.BUYER))
 
 TEMPLATE = (
-    "Напиши отчет одним сообщением:\n\n"
+    "Напишите отчет одним сообщением:\n\n"
     "1. Дата отчета (например, отчёт за 14.03.26)\n"
-    "2. Какие задачи у тебя на сегодняшний день?\n"
+    "2. Какие задачи у вас на сегодняшний день?\n"
     "3. Какие есть сейчас проблемы? Какие есть вопросы?"
 )
 

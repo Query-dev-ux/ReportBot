@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
@@ -17,19 +17,19 @@ log = logging.getLogger(__name__)
 
 
 async def remind_missing_reports(bot: Bot, sessionmaker: async_sessionmaker, config: Settings) -> None:
-    """Напоминает баерам без отчета за вчера и шлет их список в тему General группы."""
-    yesterday = datetime.now(config.tz).date() - timedelta(days=1)
+    """Напоминает баерам без отчета за сегодня и шлет их список в тему General группы."""
+    today = datetime.now(config.tz).date()
     async with sessionmaker() as session:
-        missing = await repo.buyers_without_report(session, yesterday)
+        missing = await repo.buyers_without_report(session, today)
 
-    log.info("Reminder for %s: %d buyers without report", yesterday, len(missing))
+    log.info("Reminder for %s: %d buyers without report", today, len(missing))
     by_group: dict[int, list[tuple[User, str]]] = defaultdict(list)
     for buyer, name in missing:
         by_group[buyer.group_id].append((buyer, name))
         try:
             await bot.send_message(
                 buyer.tg_id,
-                f"⏰ Вы не заполнили отчет за {fmt_date(yesterday)}. "
+                f"⏰ Вы не заполнили отчет за {fmt_date(today)}. "
                 "Пожалуйста, создайте его через кнопку «Создать новый отчет»",
                 reply_markup=main_menu(Role.BUYER),
             )
@@ -44,7 +44,7 @@ async def remind_missing_reports(bot: Bot, sessionmaker: async_sessionmaker, con
             f"• {escape_text(name)}" + (f" (@{buyer.username})" if buyer.username else "")
             for buyer, name in sorted(buyers, key=lambda item: item[1].lower())
         ]
-        text = f"📋 Не заполнили отчет за {fmt_date(yesterday)}:\n" + "\n".join(lines)
+        text = f"📋 Не заполнили отчет за {fmt_date(today)}:\n" + "\n".join(lines)
         try:
             await send_long(bot, chat_id, text, thread_id=thread_id)
         except TelegramAPIError as e:
