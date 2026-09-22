@@ -1,4 +1,3 @@
-import re
 from datetime import date, datetime
 from html import escape
 from zoneinfo import ZoneInfo
@@ -10,12 +9,15 @@ from bot.db.models import Report
 
 MESSAGE_LIMIT = 4096
 
-_FULL_DATE = re.compile(r"(?<!\d)(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})(?!\d)")
-_SHORT_DATE = re.compile(r"(?<!\w)за\s+(\d{1,2})\.(\d{1,2})(?![\d.])", re.IGNORECASE)
-
 
 def escape_text(text: str) -> str:
     return escape(text, quote=False)
+
+
+def short_chat_id(chat_id: int) -> str:
+    """-1003944138604 -> 3944138604 (как ID вводят в командах)."""
+    text = str(chat_id)
+    return text[4:] if text.startswith("-100") else text
 
 
 def normalize_chat_id(raw: str) -> int:
@@ -25,30 +27,6 @@ def normalize_chat_id(raw: str) -> int:
     if raw.startswith("100") and len(raw) > 12:
         return int(f"-{raw}")
     return int(f"-100{raw}")
-
-
-def _make_date(day: str, month: str, year: int) -> date | None:
-    try:
-        return date(year, int(month), int(day))
-    except ValueError:
-        return None
-
-
-def parse_report_date(text: str, today: date) -> date | None:
-    """Ищет дату отчета: сначала в первой строке, потом во всем тексте."""
-    first_line = text.strip().splitlines()[0] if text.strip() else ""
-    for chunk in (first_line, text):
-        for m in _FULL_DATE.finditer(chunk):
-            year = int(m[3])
-            if year < 100:
-                year += 2000
-            if parsed := _make_date(m[1], m[2], year):
-                return parsed
-    # "Отчет за 14.03" — без года, только после "за" в первой строке
-    for m in _SHORT_DATE.finditer(first_line):
-        if parsed := _make_date(m[1], m[2], today.year):
-            return parsed
-    return None
 
 
 def fmt_date(value: date) -> str:
@@ -71,6 +49,11 @@ def report_card(report: Report, tz: ZoneInfo) -> str:
         updated = f" <i>({fmt_dt(report.updated_at, tz)})</i>" if report.updated_at else ""
         parts += ["", f"<b>Обновлен</b>{updated}:", escape_text(report.updated_text)]
     return "\n".join(parts)
+
+
+def new_report_post(report: Report) -> str:
+    """Новый отчет для публикации в группе."""
+    return f"<b>Отчет за {fmt_date(report.report_date)}</b>\n\n{escape_text(report.text)}"
 
 
 def updated_report_post(report: Report) -> str:

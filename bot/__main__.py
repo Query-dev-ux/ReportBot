@@ -5,14 +5,15 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from bot.commands import set_admin_commands, set_default_commands
 from bot.config import Settings
+from bot.db import repo
 from bot.db.models import Base
-from bot.handlers import buyer, common, groups, viewer
+from bot.handlers import admin, buyer, common, groups, viewer
 from bot.middlewares import DbMiddleware
 from bot.scheduler import remind_missing_reports
 
@@ -35,17 +36,15 @@ async def main() -> None:
         common.router,
         buyer.router,
         viewer.router,
+        admin.router,
         groups.router,
         common.fallback_router,
     )
 
-    await bot.set_my_commands(
-        [
-            BotCommand(command="start", description="Главное меню"),
-            BotCommand(command="unlock", description="Авторизация"),
-        ],
-        scope=BotCommandScopeAllPrivateChats(),
-    )
+    await set_default_commands(bot)
+    async with sessionmaker() as session:
+        for admin_user in await repo.list_admins(session):
+            await set_admin_commands(bot, admin_user.tg_id)
 
     scheduler = AsyncIOScheduler(timezone=config.tz)
     scheduler.add_job(

@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ChatType
@@ -17,7 +16,7 @@ from bot.middlewares import RoleFilter
 from bot.utils import (
     escape_text,
     fmt_date,
-    parse_report_date,
+    new_report_post,
     report_card,
     send_long,
     updated_report_post,
@@ -29,11 +28,10 @@ router = Router()
 router.message.filter(F.chat.type == ChatType.PRIVATE, RoleFilter(Role.BUYER))
 router.callback_query.filter(RoleFilter(Role.BUYER))
 
-TEMPLATE = (
+DEFAULT_TEMPLATE = (
     "Напиши отчет одним сообщением:\n\n"
-    "1. Дата отчета (например, отчёт за 14.03.26)\n"
-    "2. Какие задачи у тебя на сегодняшний день?\n"
-    "3. Какие есть сейчас проблемы? Какие есть вопросы?"
+    "1. Какие задачи у тебя на сегодняшний день?\n"
+    "2. Какие есть сейчас проблемы? Какие есть вопросы?"
 )
 
 
@@ -58,9 +56,10 @@ async def _publish(bot: Bot, user: User, text: str, reply_to: Report | None = No
 
 
 @router.message(F.text == BTN_NEW_REPORT)
-async def new_report(message: Message, state: FSMContext) -> None:
+async def new_report(message: Message, state: FSMContext, session: AsyncSession, user: User) -> None:
     await state.set_state(ReportForm.new)
-    await message.answer(TEMPLATE)
+    template = await repo.get_template(session, user.group_id) if user.group_id else None
+    await message.answer(escape_text(template or DEFAULT_TEMPLATE))
 
 
 @router.message(F.text == BTN_LAST_REPORT)
@@ -91,15 +90,10 @@ async def save_new_report(
     bot: Bot,
     config: Settings,
 ) -> None:
-    report_date = parse_report_date(message.text, datetime.now(config.tz).date())
-    if report_date is None:
-        await message.answer(
-            "Не нашел дату отчета. Укажи ее в первой строке, например: «Отчёт за 14.03.26»"
-        )
-        return
-
+    # Дата отчета — день отправки сообщения по МСК
+    report_date = message.date.astimezone(config.tz).date()
     report = await repo.create_report(session, user.tg_id, report_date, message.text)
-    message_id = await _publish(bot, user, escape_text(message.text))
+    message_id = await _publish(bot, user, new_report_post(report))
     if message_id is not None:
         report.chat_id, report.thread_id, report.message_id = user.group_id, user.topic_id, message_id
     await session.commit()

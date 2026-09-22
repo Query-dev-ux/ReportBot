@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.commands import reset_commands, set_admin_commands
 from bot.config import Settings
 from bot.db import repo
 from bot.db.models import Role, User
@@ -60,6 +61,7 @@ async def cmd_unlock(
     if hmac.compare_digest(arg.encode(), config.admin_key.get_secret_value().encode()):
         await repo.upsert_user(session, message.from_user, Role.ADMIN)
         await session.commit()
+        await set_admin_commands(bot, message.from_user.id)
         await message.answer("✅ Ты авторизован(а) как админ", reply_markup=main_menu(Role.ADMIN))
         return
 
@@ -91,6 +93,7 @@ async def cmd_unlock(
     if topic_id is None:
         await repo.upsert_user(session, message.from_user, Role.TEAMLEAD, group_id=chat.id)
         await session.commit()
+        await reset_commands(bot, message.from_user.id)
         await message.answer(
             f"✅ Ты авторизован(а) как ТимЛид группы «{escape_text(title)}»",
             reply_markup=main_menu(Role.TEAMLEAD),
@@ -123,6 +126,7 @@ async def cmd_unlock(
     )
     name = await repo.buyer_name(session, user)
     await session.commit()
+    await reset_commands(bot, message.from_user.id)
     await message.answer(
         f"✅ Ты авторизован(а) как баер «{escape_text(name)}» в группе «{escape_text(title)}»",
         reply_markup=main_menu(Role.BUYER),

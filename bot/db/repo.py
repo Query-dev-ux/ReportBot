@@ -5,7 +5,7 @@ from sqlalchemy import and_, exists, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.db.models import Group, Report, Role, Topic, User
+from bot.db.models import Group, Report, Role, Template, Topic, User
 
 
 async def get_user(session: AsyncSession, tg_id: int) -> User | None:
@@ -38,6 +38,10 @@ async def upsert_group(session: AsyncSession, chat_id: int, title: str) -> None:
     await session.execute(stmt)
 
 
+async def get_group(session: AsyncSession, chat_id: int) -> Group | None:
+    return await session.get(Group, chat_id)
+
+
 async def update_group_title(session: AsyncSession, chat_id: int, title: str) -> None:
     group = await session.get(Group, chat_id)
     if group:
@@ -50,6 +54,22 @@ async def upsert_topic(session: AsyncSession, chat_id: int, thread_id: int, name
         index_elements=[Topic.chat_id, Topic.thread_id], set_={"name": name}
     )
     await session.execute(stmt)
+
+
+async def get_template(session: AsyncSession, chat_id: int) -> str | None:
+    template = await session.get(Template, chat_id)
+    return template.text if template else None
+
+
+async def set_template(session: AsyncSession, chat_id: int, text: str) -> None:
+    stmt = insert(Template).values(chat_id=chat_id, text=text)
+    stmt = stmt.on_conflict_do_update(index_elements=[Template.chat_id], set_={"text": text})
+    await session.execute(stmt)
+
+
+async def list_admins(session: AsyncSession) -> list[User]:
+    result = await session.scalars(select(User).where(User.role == Role.ADMIN))
+    return list(result)
 
 
 async def list_groups(session: AsyncSession) -> list[Group]:

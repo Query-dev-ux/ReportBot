@@ -22,6 +22,20 @@ class Group(Base):
     title: Mapped[str] = mapped_column(String(255))
 
 
+class Template(Base):
+    """Шаблон отчета группы. Если не задан — используется шаблон по умолчанию."""
+
+    __tablename__ = "templates"
+
+    chat_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("groups.chat_id", ondelete="CASCADE"), primary_key=True
+    )
+    text: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Topic(Base):
     """Названия тем форума. Баер отображается под названием своей темы."""
 
