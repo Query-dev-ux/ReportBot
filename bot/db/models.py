@@ -72,3 +72,31 @@ class Report(Base):
     message_id: Mapped[int | None] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Question(Base):
+    """Вопрос, разосланный баерам админом или ТимЛидом."""
+
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    author_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.tg_id"), index=True)
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class QuestionDelivery(Base):
+    """Вопрос, отправленный конкретному баеру, и его ответ."""
+
+    __tablename__ = "question_deliveries"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("questions.id", ondelete="CASCADE"), index=True
+    )
+    buyer_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.tg_id"), index=True)
+    # id сообщения с вопросом в личке баера — чтобы принять ответ реплаем
+    message_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    answer_text: Mapped[str | None] = mapped_column(Text)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

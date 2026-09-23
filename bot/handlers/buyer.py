@@ -10,10 +10,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import Settings
 from bot.db import repo
-from bot.db.models import Report, Role, User
-from bot.keyboards import BTN_LAST_REPORT, BTN_NEW_REPORT, EditReportCb, edit_report_kb, main_menu
+from bot.db.models import QuestionDelivery, Report, Role, User
+from bot.keyboards import (
+    BTN_LAST_REPORT,
+    BTN_NEW_REPORT,
+    AnswerCb,
+    EditReportCb,
+    edit_report_kb,
+    main_menu,
+)
 from bot.middlewares import RoleFilter
 from bot.utils import (
+    answer_post,
     escape_text,
     fmt_date,
     new_report_post,
@@ -38,6 +46,10 @@ DEFAULT_TEMPLATE = (
 class ReportForm(StatesGroup):
     new = State()
     edit = State()
+
+
+class QuestionForm(StatesGroup):
+    answer = State()
 
 
 async def _publish(bot: Bot, user: User, text: str, reply_to: Report | None = None) -> int | None:
@@ -150,3 +162,68 @@ async def save_edited_report(
 @router.message(ReportForm.edit)
 async def not_text(message: Message) -> None:
     await message.answer("Отправь отчет текстовым сообщением")
+
+
+async def _save_answer(
+    message: Message, session: AsyncSession, user: User, bot: Bot, delivery: QuestionDelivery
+) -> None:
+    question = await repo.get_question(session, delivery.question_id)
+    repo.mark_answered(delivery, message.text)
+    name = await repo.buyer_name(session, user)
+    published = await _publish(
+        bot, user, answer_post(question.text if question else "", name, message.text)
+    )
+    await session.commit()
+    status = "отправлен в твою тему" if published else "сохранен, но не отправлен в группу"
+    await message.answer(f"✅ Ответ {status}", reply_markup=main_menu(Role.BUYER))
+
+
+@router.callback_query(AnswerCb.filter())
+async def answer_start(
+    call: CallbackQuery,
+    callback_data: AnswerCb,
+    state: FSMContext,
+    session: AsyncSession,
+    user: User,
+) -> None:
+    delivery = await repo.get_delivery(session, callback_data.delivery_id)
+    if delivery is None or delivery.buyer_id != user.tg_id:
+        await call.answer("Вопрос не найден", show_alert=True)
+        return
+    await state.set_state(QuestionForm.answer)
+    await state.update_data(delivery_id=delivery.id)
+    await call.message.answer("Напиши ответ одним сообщением")
+    await call.answer()
+
+
+@router.message(QuestionForm.answer, F.text)
+async def save_answer(
+    message: Message, state: FSMContext, session: AsyncSession, user: User, bot: Bot
+) -> None:
+    data = await state.get_data()
+    await state.clear()
+    delivery = await repo.get_delivery(session, data.get("delivery_id", 0))
+    if delivery is None or delivery.buyer_id != user.tg_id:
+        await message.answer("Вопрос не найден", reply_markup=main_menu(Role.BUYER))
+        return
+    await _save_answer(message, session, user, bot, delivery)
+
+
+@router.message(QuestionForm.answer)
+async def answer_not_text(message: Message) -> None:
+    await message.answer("Отправь ответ текстовым сообщением")
+
+
+@router.message(F.reply_to_message, F.text)
+async def answer_by_reply(
+    message: Message, state: FSMContext, session: AsyncSession, user: User, bot: Bot
+) -> None:
+    """Ответ реплаем на сообщение с вопросом."""
+    delivery = await repo.delivery_by_message(
+        session, user.tg_id, message.reply_to_message.message_id
+    )
+    if delivery is None:
+        await message.answer("Выбери действие в меню", reply_markup=main_menu(Role.BUYER))
+        return
+    await state.clear()
+    await _save_answer(message, session, user, bot, delivery)

@@ -13,7 +13,7 @@ from bot.commands import set_admin_commands, set_default_commands
 from bot.config import Settings
 from bot.db import repo
 from bot.db.models import Base
-from bot.handlers import admin, buyer, common, groups, viewer
+from bot.handlers import admin, ask, buyer, common, groups, viewer
 from bot.middlewares import DbMiddleware
 from bot.scheduler import remind_missing_reports
 
@@ -37,6 +37,7 @@ async def main() -> None:
         buyer.router,
         viewer.router,
         admin.router,
+        ask.router,
         groups.router,
         common.fallback_router,
     )

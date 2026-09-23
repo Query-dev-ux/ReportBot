@@ -66,6 +66,23 @@ def updated_report_post(report: Report) -> str:
     )
 
 
+def question_dm(text: str) -> str:
+    """Вопрос в личке баера."""
+    return (
+        f"❓ <b>Вопрос</b>\n\n{escape_text(text)}\n\n"
+        "<i>Нажми «Ответить» или ответь реплаем на это сообщение — "
+        "ответ уйдет в твою тему</i>"
+    )
+
+
+def answer_post(question_text: str, buyer_name: str, answer_text: str) -> str:
+    """Ответ баера для публикации в его теме."""
+    return (
+        f"Вопрос: {escape_text(question_text)}\n"
+        f"Ответ от {escape_text(buyer_name)}: {escape_text(answer_text)}"
+    )
+
+
 def _cut(line: str, limit: int) -> tuple[str, str]:
     head = line[:limit]
     # не разрезаем HTML-сущность вида &amp;

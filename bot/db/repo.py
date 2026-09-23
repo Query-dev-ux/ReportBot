@@ -5,7 +5,7 @@ from sqlalchemy import and_, exists, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.db.models import Group, Report, Role, Template, Topic, User
+from bot.db.models import Group, Question, QuestionDelivery, Report, Role, Template, Topic, User
 
 
 async def get_user(session: AsyncSession, tg_id: int) -> User | None:
@@ -94,6 +94,18 @@ async def list_buyers(session: AsyncSession, group_id: int) -> list[tuple[User, 
     return sorted(_with_names(rows), key=lambda item: item[1].lower())
 
 
+async def list_all_buyers(session: AsyncSession) -> list[tuple[User, str, str]]:
+    """Все баеры с названием темы и названием группы — для рассылки вопроса админом."""
+    rows = await session.execute(
+        _buyers_query().add_columns(Group.title).outerjoin(Group, Group.chat_id == User.group_id)
+    )
+    buyers = [
+        (user, topic_name or user.full_name, group_title or "без группы")
+        for user, topic_name, group_title in rows
+    ]
+    return sorted(buyers, key=lambda item: (item[2].lower(), item[1].lower()))
+
+
 async def buyer_name(session: AsyncSession, user: User) -> str:
     if user.group_id is not None and user.topic_id is not None:
         topic = await session.get(Topic, (user.group_id, user.topic_id))
@@ -139,3 +151,43 @@ async def last_report(session: AsyncSession, user_id: int) -> Report | None:
 def mark_updated(report: Report, text: str) -> None:
     report.updated_text = text
     report.updated_at = datetime.now(timezone.utc)
+
+
+async def create_question(session: AsyncSession, author_id: int, text: str) -> Question:
+    question = Question(author_id=author_id, text=text)
+    session.add(question)
+    await session.flush()
+    return question
+
+
+async def create_delivery(
+    session: AsyncSession, question_id: int, buyer_id: int
+) -> QuestionDelivery:
+    delivery = QuestionDelivery(question_id=question_id, buyer_id=buyer_id)
+    session.add(delivery)
+    await session.flush()
+    return delivery
+
+
+async def get_delivery(session: AsyncSession, delivery_id: int) -> QuestionDelivery | None:
+    return await session.get(QuestionDelivery, delivery_id)
+
+
+async def delivery_by_message(
+    session: AsyncSession, buyer_id: int, message_id: int
+) -> QuestionDelivery | None:
+    """Ответ реплаем на вопрос: ищем по id сообщения с вопросом."""
+    return await session.scalar(
+        select(QuestionDelivery).where(
+            QuestionDelivery.buyer_id == buyer_id, QuestionDelivery.message_id == message_id
+        )
+    )
+
+
+async def get_question(session: AsyncSession, question_id: int) -> Question | None:
+    return await session.get(Question, question_id)
+
+
+def mark_answered(delivery: QuestionDelivery, text: str) -> None:
+    delivery.answer_text = text
+    delivery.answered_at = datetime.now(timezone.utc)
