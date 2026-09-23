@@ -69,9 +69,8 @@ def updated_report_post(report: Report) -> str:
 def question_dm(text: str) -> str:
     """Вопрос в личке баера."""
     return (
-        f"❓ <b>Вопрос</b>\n\n{escape_text(text)}\n\n"
-        "<i>Нажми «Ответить» или ответь реплаем на это сообщение — "
-        "ответ уйдет в твою тему</i>"
+        f"Ответь на вопрос:\n\n{escape_text(text)}\n\n"
+        "<i>Нажми «Ответить» или ответь реплаем на это сообщение</i>"
     )
 
 
